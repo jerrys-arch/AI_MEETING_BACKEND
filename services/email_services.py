@@ -1,14 +1,8 @@
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
+import resend
 from typing import List
 
-
-GMAIL_USER = os.environ.get("GMAIL_USER")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
+resend.api_key = os.environ.get("RESEND_API_KEY")
 
 
 def build_email_body(meeting) -> str:
@@ -51,42 +45,38 @@ def build_email_body(meeting) -> str:
 
 def send_meeting_email(meeting, attendees: List[str], pdf_path: str = None) -> dict:
     """
-    Send meeting notes email to a list of attendees.
+    Send meeting notes email to a list of attendees using Resend.
     Optionally attach the PDF.
     Returns dict with success status and message.
     """
-    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+    if not resend.api_key:
         return {"success": False, "message": "Email credentials not configured."}
 
     if not attendees:
         return {"success": False, "message": "No attendees provided."}
 
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"📝 Meeting Notes — {meeting.created_at.strftime('%B %d, %Y')}"
-        msg["From"] = GMAIL_USER
-        msg["To"] = ", ".join(attendees)
-
-        # Attach HTML body
         html_body = build_email_body(meeting)
-        msg.attach(MIMEText(html_body, "html"))
+
+        params: resend.Emails.SendParams = {
+            "from": "Meeting Notes <onboarding@resend.dev>",
+            "to": attendees,
+            "subject": f"📝 Meeting Notes — {meeting.created_at.strftime('%B %d, %Y')}",
+            "html": html_body,
+        }
 
         # Attach PDF if provided
         if pdf_path and os.path.exists(pdf_path):
             with open(pdf_path, "rb") as f:
-                part = MIMEBase("application", "octet-stream")
-                part.set_payload(f.read())
-                encoders.encode_base64(part)
-                part.add_header(
-                    "Content-Disposition",
-                    f"attachment; filename=meeting_{meeting.id}_notes.pdf"
-                )
-                msg.attach(part)
+                pdf_bytes = f.read()
+            params["attachments"] = [
+                {
+                    "filename": f"meeting_{meeting.id}_notes.pdf",
+                    "content": list(pdf_bytes),
+                }
+            ]
 
-        # Send via Gmail SMTP
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
-            server.sendmail(GMAIL_USER, attendees, msg.as_string())
+        resend.Emails.send(params)
 
         print(f"Email sent to {attendees}")
         return {
@@ -94,8 +84,6 @@ def send_meeting_email(meeting, attendees: List[str], pdf_path: str = None) -> d
             "message": f"Email sent successfully to {len(attendees)} attendee(s)."
         }
 
-    except smtplib.SMTPAuthenticationError:
-        return {"success": False, "message": "Gmail authentication failed. Check your app password."}
     except Exception as e:
         print("EMAIL ERROR:", str(e))
         return {"success": False, "message": f"Failed to send email: {str(e)}"}
