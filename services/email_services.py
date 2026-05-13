@@ -10,7 +10,6 @@ def build_email_body(meeting) -> str:
     language_label = "Amharic" if meeting.language == "am" else "English"
     date_str = meeting.created_at.strftime("%B %d, %Y at %H:%M")
 
-    # Convert bullet points to HTML
     summary_html = ""
     for line in meeting.summary.split("\n"):
         line = line.strip()
@@ -46,8 +45,7 @@ def build_email_body(meeting) -> str:
 def send_meeting_email(meeting, attendees: List[str], pdf_path: str = None) -> dict:
     """
     Send meeting notes email to a list of attendees using Resend.
-    Optionally attach the PDF.
-    Returns dict with success status and message.
+    PDF attachment is skipped to avoid timeout on free tier.
     """
     if not resend.api_key:
         return {"success": False, "message": "Email credentials not configured."}
@@ -64,17 +62,6 @@ def send_meeting_email(meeting, attendees: List[str], pdf_path: str = None) -> d
             "subject": f"📝 Meeting Notes — {meeting.created_at.strftime('%B %d, %Y')}",
             "html": html_body,
         }
-
-        # Attach PDF if provided
-        if pdf_path and os.path.exists(pdf_path):
-            with open(pdf_path, "rb") as f:
-                pdf_bytes = f.read()
-            params["attachments"] = [
-                {
-                    "filename": f"meeting_{meeting.id}_notes.pdf",
-                    "content": list(pdf_bytes),
-                }
-            ]
 
         resend.Emails.send(params)
 
