@@ -1,16 +1,8 @@
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
+import resend
 from typing import List
 
-BREVO_SMTP_SERVER = "smtp-relay.brevo.com"
-BREVO_SMTP_PORT = 587
-BREVO_SMTP_USER = os.environ.get("BREVO_SMTP_USER")
-BREVO_SMTP_PASSWORD = os.environ.get("BREVO_SMTP_PASSWORD")
-BREVO_FROM_EMAIL = os.environ.get("BREVO_FROM_EMAIL")
+resend.api_key = os.environ.get("RESEND_API_KEY")
 
 
 def build_email_body(meeting) -> str:
@@ -52,42 +44,26 @@ def build_email_body(meeting) -> str:
 
 def send_meeting_email(meeting, attendees: List[str], pdf_path: str = None) -> dict:
     """
-    Send meeting notes email to a list of attendees using Brevo SMTP.
-    Supports PDF attachment.
+    Send meeting notes email to a list of attendees using Resend.
+    PDF attachment is skipped to avoid timeout on free tier.
     """
-    if not BREVO_SMTP_USER or not BREVO_SMTP_PASSWORD or not BREVO_FROM_EMAIL:
+    if not resend.api_key:
         return {"success": False, "message": "Email credentials not configured."}
 
     if not attendees:
         return {"success": False, "message": "No attendees provided."}
 
     try:
-        msg = MIMEMultipart("mixed")
-        msg["Subject"] = f"📝 Meeting Notes — {meeting.created_at.strftime('%B %d, %Y')}"
-        msg["From"] = f"Meeting Notes <{BREVO_FROM_EMAIL}>"
-        msg["To"] = ", ".join(attendees)
-
-        # Attach HTML body
         html_body = build_email_body(meeting)
-        msg.attach(MIMEText(html_body, "html"))
 
-        # Attach PDF if provided
-        if pdf_path and os.path.exists(pdf_path):
-            with open(pdf_path, "rb") as f:
-                part = MIMEBase("application", "octet-stream")
-                part.set_payload(f.read())
-                encoders.encode_base64(part)
-                part.add_header(
-                    "Content-Disposition",
-                    f"attachment; filename=meeting_{meeting.id}_notes.pdf"
-                )
-                msg.attach(part)
+        params: resend.Emails.SendParams = {
+            "from": "Meeting Notes <onboarding@resend.dev>",
+            "to": attendees,
+            "subject": f"📝 Meeting Notes — {meeting.created_at.strftime('%B %d, %Y')}",
+            "html": html_body,
+        }
 
-        # Send via Brevo SMTP on port 587 (TLS)
-        with smtplib.SMTP(BREVO_SMTP_SERVER, BREVO_SMTP_PORT) as server:
-            server.starttls()
-            server.login(BREVO_SMTP_USER, BREVO_SMTP_PASSWORD)
-            server.sendmail(BREVO_FROM_EMAIL, attendees, msg.as_string())
+        resend.Emails.send(params)
 
         print(f"Email sent to {attendees}")
         return {
@@ -95,8 +71,6 @@ def send_meeting_email(meeting, attendees: List[str], pdf_path: str = None) -> d
             "message": f"Email sent successfully to {len(attendees)} attendee(s)."
         }
 
-    except smtplib.SMTPAuthenticationError:
-        return {"success": False, "message": "Brevo authentication failed. Check your SMTP credentials."}
     except Exception as e:
         print("EMAIL ERROR:", str(e))
         return {"success": False, "message": f"Failed to send email: {str(e)}"}
