@@ -25,16 +25,22 @@ Be concise and professional.
 Use this exact format:
 
 📋 Key Points:
-• [point]
-• [point]
+• [Summarize the main topics discussed — not quotes, just clear points]
 
 ✅ Decisions Made:
-• [decision]
+• [Write each decision as a clear concluded statement, not a quote from the transcript]
+• Example: 'Dark mode will not be disabled for the initial release'
+• NOT: 'Chloe said absolutely not to disabling dark mode'
+• If no clear decision was made, write: • None mentioned
 
 📌 Action Items:
-• [action item — who does what]
-
-If a section has nothing mentioned, write: • None mentioned"""
+• [Only include concrete tasks that need to be done after the meeting]
+• If the owner is clear, include their name: 'Sarah: Call VP of Engineering today'
+• If only one person is speaking, list tasks without a name
+• If the owner is unclear, just write the task without a name
+• Do NOT include general conversation, opinions, or statements as action items
+• Do NOT list things already completed during the meeting
+• If nothing actionable was mentioned, write: • None mentioned"""
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
