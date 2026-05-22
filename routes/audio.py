@@ -20,6 +20,12 @@ ALLOWED_TYPES = {
 }
 
 
+def is_allowed_audio(content_type: str) -> bool:
+    """Check if content type is allowed, ignoring codec suffix like ;codecs=opus."""
+    base_type = content_type.split(";")[0].strip().lower()
+    return base_type in ALLOWED_TYPES
+
+
 def generate_title(summary: str, language: str) -> str:
     """Auto-generate a short title from the first key point in the summary."""
     if not summary:
@@ -53,13 +59,13 @@ async def summarize_audio(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    if file.content_type not in ALLOWED_TYPES:
+    if not is_allowed_audio(file.content_type):
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported file type: {file.content_type}. Use mp3, wav, or webm."
         )
 
-    file_ext = file.filename.split(".")[-1]
+    file_ext = file.filename.split(".")[-1] if "." in file.filename else "webm"
     unique_name = f"{uuid.uuid4()}.{file_ext}"
     file_path = os.path.join(UPLOAD_DIR, unique_name)
 
