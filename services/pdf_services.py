@@ -10,6 +10,24 @@ from reportlab.pdfbase.ttfonts import TTFont
 TEMP_DIR = "temp"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+# Register Amharic font
+FONT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "fonts", "NotoSansEthiopic-Regular.ttf")
+AMHARIC_FONT = "NotoSansEthiopic"
+
+try:
+    pdfmetrics.registerFont(TTFont(AMHARIC_FONT, FONT_PATH))
+    AMHARIC_FONT_AVAILABLE = True
+except Exception as e:
+    print(f"Warning: Could not load Amharic font: {e}")
+    AMHARIC_FONT_AVAILABLE = False
+
+
+def get_font(language: str) -> str:
+    """Return the appropriate font name based on language."""
+    if language == "am" and AMHARIC_FONT_AVAILABLE:
+        return AMHARIC_FONT
+    return "Helvetica"
+
 
 def generate_pdf(meeting) -> str:
     """Generate a PDF for a meeting and return the file path."""
@@ -25,6 +43,7 @@ def generate_pdf(meeting) -> str:
     )
 
     styles = getSampleStyleSheet()
+    font = get_font(meeting.language)
     story = []
 
     # Title
@@ -34,6 +53,7 @@ def generate_pdf(meeting) -> str:
         fontSize=20,
         textColor=colors.HexColor("#1a1a2e"),
         spaceAfter=6,
+        fontName=font,
     )
     story.append(Paragraph("Meeting Notes", title_style))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#4a90d9")))
@@ -46,6 +66,7 @@ def generate_pdf(meeting) -> str:
         fontSize=10,
         textColor=colors.grey,
         spaceAfter=4,
+        fontName=font,
     )
     story.append(Paragraph(f"<b>Date:</b> {meeting.created_at.strftime('%B %d, %Y %H:%M')}", meta_style))
     story.append(Paragraph(f"<b>Language:</b> {'Amharic' if meeting.language == 'am' else 'English'}", meta_style))
@@ -60,6 +81,7 @@ def generate_pdf(meeting) -> str:
         textColor=colors.HexColor("#4a90d9"),
         spaceBefore=10,
         spaceAfter=6,
+        fontName=font,
     )
     body_style = ParagraphStyle(
         "Body",
@@ -67,6 +89,7 @@ def generate_pdf(meeting) -> str:
         fontSize=11,
         leading=18,
         spaceAfter=4,
+        fontName=font,
     )
 
     story.append(Paragraph("Summary", section_style))
@@ -92,6 +115,7 @@ def generate_pdf(meeting) -> str:
             fontSize=10,
             leading=16,
             textColor=colors.HexColor("#444444"),
+            fontName=font,
         )
         story.append(Paragraph(meeting.transcription, transcription_style))
 
