@@ -4,6 +4,8 @@ from typing import List
 
 resend.api_key = os.environ.get("RESEND_API_KEY")
 
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+
 
 def build_email_body(meeting) -> str:
     """Build a clean HTML email body from meeting notes."""
@@ -73,4 +75,56 @@ def send_meeting_email(meeting, attendees: List[str], pdf_path: str = None) -> d
 
     except Exception as e:
         print("EMAIL ERROR:", str(e))
+        return {"success": False, "message": f"Failed to send email: {str(e)}"}
+
+
+def send_password_reset_email(email: str, reset_token: str) -> dict:
+    """Send password reset email with reset link."""
+    if not resend.api_key:
+        return {"success": False, "message": "Email credentials not configured."}
+
+    reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+
+    html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; color: #333;">
+        <div style="background: #4a90d9; padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0;">🔐 Password Reset</h1>
+            <p style="color: #e0eeff; margin: 5px 0 0 0;">Meeting Notes AI</p>
+        </div>
+        <div style="border: 1px solid #ddd; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
+            <p>You requested to reset your password. Click the button below to set a new password.</p>
+            <p>This link expires in <strong>15 minutes</strong>.</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{reset_link}"
+                   style="background: #4a90d9; color: white; padding: 12px 30px;
+                          border-radius: 8px; text-decoration: none; font-weight: bold;
+                          display: inline-block;">
+                    Reset Password
+                </a>
+            </div>
+            <p style="color: #999; font-size: 12px;">
+                If you did not request a password reset, ignore this email.
+                Your password will not change.
+            </p>
+            <p style="color: #999; font-size: 12px;">
+                Or copy this link: {reset_link}
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+
+    try:
+        params: resend.Emails.SendParams = {
+            "from": "Meeting Notes <onboarding@resend.dev>",
+            "to": [email],
+            "subject": "🔐 Reset your Meeting Notes AI password",
+            "html": html,
+        }
+        resend.Emails.send(params)
+        return {"success": True, "message": "Password reset email sent."}
+
+    except Exception as e:
+        print("RESET EMAIL ERROR:", str(e))
         return {"success": False, "message": f"Failed to send email: {str(e)}"}
