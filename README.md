@@ -34,30 +34,6 @@ A production-ready FastAPI backend for an AI-powered meeting note generator that
 CategoryTechnologyFrameworkFastAPI (Python)English TranscriptionGroq Whisper Large V3Amharic TranscriptionGoogle Gemini 2.5 FlashEnglish SummarizationGroq Qwen 3.6 27BAmharic SummarizationGoogle Gemini 2.5 FlashDatabasePostgreSQL (Supabase) + SQLAlchemyAuthenticationJWT (python-jose) + Google OAuth 2.0EmailResend APIPDF GenerationReportLab (with NotoSansEthiopic font)DeploymentRender
 
 
-📁 Project Structure
-
-ai_meeting_backend/
-├── main.py                      # FastAPI app entry point
-├── auth.py                      # JWT authentication logic
-├── database.py                  # Database connection setup
-├── models.py                    # SQLAlchemy database models
-├── schemas.py                   # Pydantic request/response schemas
-├── requirements.txt
-├── fonts/
-│   └── NotoSansEthiopic-Regular.ttf   # Amharic font for PDF
-├── routes/
-│   ├── auth.py                  # Auth endpoints (register, login, Google OAuth, forgot password)
-│   ├── audio.py                 # Audio upload/transcription endpoint
-│   ├── text.py                  # Text summarization endpoint
-│   └── meetings.py              # Meeting history, PDF export, email endpoints
-└── services/
-    ├── whisper_service.py       # Audio transcription logic
-    ├── summarizer_service.py    # AI summarization logic
-    ├── language_detector.py     # Auto language detection
-    ├── pdf_service.py           # PDF generation
-    └── email_service.py         # Email sending
-
-
 🚀 API Endpoints
 
 Authentication
