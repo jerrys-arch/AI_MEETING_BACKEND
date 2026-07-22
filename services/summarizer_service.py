@@ -43,7 +43,7 @@ Use this exact format:
 • If nothing actionable was mentioned, write: • None mentioned"""
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3.6-27b",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Here is the meeting transcript:\n\n{text[:4000]}"}
